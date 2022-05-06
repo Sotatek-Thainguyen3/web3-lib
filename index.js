@@ -26,23 +26,33 @@ const PROVIDER_WSS = 'wss://rinkeby.infura.io/ws/v3/5194fde9bf364940a1bbaffd5953
      *  Sử dụng method của contract: balanceOf để lấy giá trị
      */
     const balanceOfWallet = await ethCOntract.methods.balanceOf('0x410A2d1863C559cd60dA3362f98c5500Bc735D3C').call();
-    console.log('balanceOfWallet', web3.utils.fromWei(balanceOfWallet));
+    console.log('balanceOfWallet', balanceOfWallet);
     console.log(ethCOntract.methods);
 
     /**
      * Thực hiện quản lý wallet (trích xuất trực tiếp - ko cần confirm)
      */
     web3.eth.accounts.wallet.add('ec62da7f60db6074595d0f19e7281a7374b856e3ff016c6441ddcb519c51acd4');
-    const estimateGas = await ethCOntract.methods.deposit().estimateGas({from: '0x410A2d1863C559cd60dA3362f98c5500Bc735D3C'});
+    const estimateGas = await ethCOntract.methods.deposit().estimateGas({from: '0x410A2d1863C559cd60dA3362f98c5500Bc735D3C', value: web3.utils.toWei('0.001', 'ether')});
+    console.log('estimateGas~~~', estimateGas);
 
     const balanceDeposit = await ethCOntract.methods.deposit().send({
-        from: '0x410A2d1863C559cd60dA3362f98c5500Bc735D3C', value: web3.utils.toWei('0.01', 'ether'),
-        gas: estimateGas * 2
+        from: '0x410A2d1863C559cd60dA3362f98c5500Bc735D3C',
+        gas: estimateGas,
+        value: web3.utils.toWei('0.001', 'ether')
     });
-    console.log('balanceDeposit', balanceDeposit);
+    console.log('balanceDeposit~~~', balanceDeposit);
 
     const balanceOfSC = await ethCOntract.methods.balanceOf('0x410A2d1863C559cd60dA3362f98c5500Bc735D3C').call();
-    console.log('balanceOfSC', web3.utils.fromWei(balanceOfSC));
+    console.log('balanceOfSC~~~', web3.utils.fromWei(balanceOfSC));
+
+    /**
+     * Thực hiện hàm Withdrawal
+     */
+    web3.eth.accounts.wallet.add('ec62da7f60db6074595d0f19e7281a7374b856e3ff016c6441ddcb519c51acd4');
+    const estimateGasWithdrawal = await ethCOntract.methods.withdraw('1000').estimateGas({from: '0x410A2d1863C559cd60dA3362f98c5500Bc735D3C'});
+    const balanceOfWalletOf = await ethCOntract.methods.withdraw('1000').send({from: '0x410A2d1863C559cd60dA3362f98c5500Bc735D3C', gas: estimateGasWithdrawal});
+    console.log('balanceOfWalletOf', balanceOfWalletOf)
 
     /**
      * Lấy event trong history của SC
@@ -72,8 +82,8 @@ const PROVIDER_WSS = 'wss://rinkeby.infura.io/ws/v3/5194fde9bf364940a1bbaffd5953
         const ethmulticall = new ethereumMultiCall.Multicall({web3Instance: web3, tryAggregate: true});
         const contractCallContext = [
             {
-                reference: 'user',
-                contractAddress: '0xa4D1B10c62f96463aa2D55aDCf75DC05e0d4955e',
+                reference: 'testContract1',
+                contractAddress: '0x767FA8801b94ee99C273edB9C6da4386C1c9F099',
                 abi: ERC20_ABI,
                 calls: [{
                     reference: 'balance',
@@ -83,7 +93,7 @@ const PROVIDER_WSS = 'wss://rinkeby.infura.io/ws/v3/5194fde9bf364940a1bbaffd5953
             },
             {
                 reference: 'testContract2',
-                contractAddress: '0xa4D1B10c62f96463aa2D55aDCf75DC05e0d4955e',
+                contractAddress: '0x767FA8801b94ee99C273edB9C6da4386C1c9F099',
                 abi: ERC20_ABI,
                 calls: [{
                     reference: 'balance',
@@ -94,7 +104,13 @@ const PROVIDER_WSS = 'wss://rinkeby.infura.io/ws/v3/5194fde9bf364940a1bbaffd5953
         ];
 
         const result = await ethmulticall.call(contractCallContext);
-        console.log('result', result);
+        const arrResultBalance = [];
+        for (const [key, obj] of Object.entries(result.results)) {
+            const balance = obj.callsReturnContext[0].returnValues[0].hex || 0;
+            const balanceOfRef = web3.utils.fromWei(`${balance}`, 'ether');
+            arrResultBalance.push({wallet: key, balance: balanceOfRef});
+        }
+        console.log('arrResultBalance', arrResultBalance);
     } catch (e) {
         console.log(e)
     }
